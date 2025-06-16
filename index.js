@@ -1,44 +1,52 @@
 const express = require('express');
 const app = express();
-
-// (a) Student class with name, grade, and a method getDetails
-class Student {
-    constructor(name, grade) {
-        this.name = name;
-        this.grade = grade;
-    }
-
-    getDetails() {
-        return `Name: ${this.name}, Grade: ${this.grade}`;
-    }
-}
-
 const students = [];
 
-// (b) Middleware to parse JSON requests
 app.use(express.json());
 
-// (c) POST route to add a student
+
+class Student {
+  constructor(name, grade) {
+    this.name = name;
+    this.grade = grade;
+  }
+  getDetails() {
+    return `Name: ${this.name}, Grade: ${this.grade}`;
+  }
+}
+
 app.post('/students', (req, res) => {
-    const { name, grade } = req.body;
+  const data = req.body;
 
-    // Basic validation
-    if (!name || grade === undefined) {
-        return res.status(400).json({ message: "Name and grade are required" });
+  if (Array.isArray(data)) {
+    // If an array of students
+    const addedStudents = [];
+
+    for (const item of data) {
+      const { name, grade } = item;
+      if (!name || grade === undefined) {
+        return res.status(400).json({ message: 'Each student must have name and grade' });
+      }
+      const student = new Student(name, grade);
+      students.push(student);
+      addedStudents.push(student.getDetails());
     }
-
+    return res.status(201).json({ message: 'Students added', addedStudents });
+  } else {
+    // Single student object
+    const { name, grade } = data;
+    if (!name || grade === undefined) {
+      return res.status(400).json({ message: 'Name and grade are required' });
+    }
     const student = new Student(name, grade);
     students.push(student);
-    res.status(201).json({ message: 'Student added successfully', student: student.getDetails() });
+    return res.status(201).json({ message: 'Student added', student: student.getDetails() });
+  }
 });
 
-// (d) GET route to return all students' details
 app.get('/students', (req, res) => {
-    const allDetails = students.map(student => student.getDetails());
-    res.json(allDetails);
+  const details = students.map((s) => s.getDetails());
+  res.json(details);
 });
 
-// Start the server
-app.listen(3000, () => {
-    console.log('Server is running on port 3000');
-});
+app.listen(3000, () => console.log('Server started on port 3000'));
